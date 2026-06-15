@@ -67,7 +67,7 @@ export default function Settings() {
     } catch {
       // CORS or network issues still mean the URL is reachable
       setTestResult('ok')
-      toast.success('URL looks valid (CORS blocked full response, but that's normal for Apps Script)')
+      toast.success("URL looks valid (CORS blocked full response, but that's normal for Apps Script)")
     } finally {
       setTesting(false)
     }
