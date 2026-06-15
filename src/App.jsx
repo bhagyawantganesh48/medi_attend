@@ -15,6 +15,7 @@ import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Attendance from './pages/Attendance.jsx'
 import Reports from './pages/Reports.jsx'
+import Settings from './pages/Settings.jsx'
 import Layout from './components/Layout.jsx'
 
 function ProtectedRoute({ children }) {
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="dashboard"  element={<Dashboard />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="reports"    element={<Reports />} />
+        <Route path="settings"   element={<Settings />} />
       </Route>
 
       {/* Catch-all */}

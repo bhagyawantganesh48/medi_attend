@@ -81,7 +81,7 @@ export default function Login() {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Ganesh or Friend"
+                placeholder="Ganesh or Parth"
                 autoComplete="username"
                 className="input"
                 disabled={loading}

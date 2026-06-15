@@ -12,9 +12,9 @@ import { createContext, useContext, useState, useCallback } from 'react'
 // To change passwords or add users, update this object.
 // In production you might move this to an .env file.
 const USERS = {
-  Ganesh: { password: 'password123', role: 'user',  displayName: 'Ganesh' },
-  Friend: { password: 'password123', role: 'user',  displayName: 'Friend' },
-  admin:  { password: 'admin123',    role: 'admin', displayName: 'Admin'  },
+  Ganesh: { password: '1234', role: 'user',  displayName: 'Ganesh' },
+  Parth:  { password: '1234', role: 'user',  displayName: 'Parth'  },
+  admin:  { password: '1234', role: 'admin', displayName: 'Admin'  },
 }
 
 const SESSION_KEY = 'attendance_user'

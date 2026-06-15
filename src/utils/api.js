@@ -9,10 +9,13 @@
  * All POST requests use JSON body.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+/** Returns the current API URL — prefers user-saved value from Settings */
+function getApiUrl() {
+  return localStorage.getItem('medi_api_url') || import.meta.env.VITE_API_URL || ''
+}
 
-if (!API_URL) {
-  console.warn('[API] VITE_API_URL is not set. Check your .env file.')
+if (!getApiUrl()) {
+  console.warn('[API] No API URL configured. Go to Settings to set your Google Apps Script URL.')
 }
 
 /**
@@ -20,7 +23,7 @@ if (!API_URL) {
  * @param {Object} params - Query parameters
  */
 async function apiGet(params = {}) {
-  const url = new URL(API_URL)
+  const url = new URL(getApiUrl())
   Object.entries(params).forEach(([k, v]) => {
     if (v !== null && v !== undefined && v !== '') url.searchParams.append(k, v)
   })
@@ -44,7 +47,7 @@ async function apiGet(params = {}) {
  * @param {Object} body - Request body
  */
 async function apiPost(body = {}) {
-  const response = await fetch(API_URL, {
+  const response = await fetch(getApiUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

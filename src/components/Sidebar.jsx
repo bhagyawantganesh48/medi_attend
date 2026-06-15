@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   Shield,
+  Settings,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
   { to: '/attendance', label: 'Attendance', icon: CalendarDays },
   { to: '/reports',    label: 'Reports',    icon: BarChart3 },
+  { to: '/settings',   label: 'Settings',   icon: Settings },
 ]
 
 export default function Sidebar() {
