@@ -265,7 +265,6 @@ export default function AttendanceTable({ records = [], loading = false, onRefre
             </button>
           </div>
         </div>
-        </div>
       )}
 
       {/* ── Edit Modal ──────────────────────── */}
