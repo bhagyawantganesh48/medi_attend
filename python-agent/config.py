@@ -8,19 +8,19 @@
 # ── WiFi Settings ─────────────────────────────────────────────────
 # The exact SSID of your company/office WiFi network.
 # The agent will only send heartbeats when connected to this network.
-COMPANY_WIFI = "Office_Wifi"   # ← Change this to your actual WiFi name
+COMPANY_WIFI = "GROWTH"        # ✅ Your office WiFi name
 
 # ── User Identity ─────────────────────────────────────────────────
 # Your name as it will appear in the attendance sheet.
-USER_NAME = "Ganesh"           # ← Change to "Ganesh" or "Friend"
+USER_NAME = "Ganesh"           # Change to "Parth" on Parth's laptop
 
 # The identifier for this laptop (useful if multiple devices exist).
-DEVICE_NAME = "Laptop1"        # ← e.g. "Ganesh-Laptop", "Friend-PC"
+DEVICE_NAME = "Ganesh-Laptop"  # e.g. "Ganesh-Laptop", "Parth-PC"
 
 # ── Google Apps Script API ─────────────────────────────────────────
 # Paste the deployed Web App URL from Google Apps Script here.
 # Format: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
-API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
+API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"  # ← Paste your URL here
 
 # ── Agent Behavior ────────────────────────────────────────────────
 # How often (in seconds) the agent checks WiFi and sends a heartbeat.
