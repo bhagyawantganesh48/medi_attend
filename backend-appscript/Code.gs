@@ -124,10 +124,10 @@ function recordHeartbeat(name, device, timeStr) {
   let rowIndex = -1;
 
   for (let i = 1; i < data.length; i++) { // Skip header row
-    const rowDate = data[i][COL.DATE - 1];
-    const rowName = data[i][COL.NAME - 1];
+    const rowDate = extractDate(data[i][COL.DATE - 1]);
+    const rowName = String(data[i][COL.NAME - 1]);
 
-    if (formatDate(new Date(rowDate)) === todayStr && rowName === name) {
+    if (rowDate === todayStr && rowName === name) {
       rowIndex = i + 1; // 1-based row index in sheet
       break;
     }
@@ -182,10 +182,10 @@ function editAttendance(dateStr, name, inTime, outTime, hours) {
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
-    const rowDate = data[i][COL.DATE - 1];
-    const rowName = data[i][COL.NAME - 1];
+    const rowDate = extractDate(data[i][COL.DATE - 1]);
+    const rowName = String(data[i][COL.NAME - 1]);
 
-    if (formatDate(new Date(rowDate)) === dateStr && rowName === name) {
+    if (rowDate === dateStr && rowName === name) {
       const rowIndex = i + 1;
       sheet.getRange(rowIndex, COL.IN_TIME).setValue(inTime || "");
       sheet.getRange(rowIndex, COL.OUT_TIME).setValue(outTime || "");
@@ -296,10 +296,10 @@ function processOfflineRows(sheet) {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const status = row[COL.STATUS - 1];
-    const lastSeenStr = row[COL.LAST_SEEN - 1];
-    const inTimeStr = row[COL.IN_TIME - 1];
-    const dateStr = row[COL.DATE - 1];
-    const outTimeStr = row[COL.OUT_TIME - 1];
+    const lastSeenStr = extractTime(row[COL.LAST_SEEN - 1]);
+    const inTimeStr = extractTime(row[COL.IN_TIME - 1]);
+    const dateStr = extractDate(row[COL.DATE - 1]);
+    const outTimeStr = extractTime(row[COL.OUT_TIME - 1]);
 
     if (status !== "Online" || !lastSeenStr) continue;
 
@@ -355,15 +355,39 @@ function getSheet() {
 /** Convert a sheet row array to a clean object */
 function rowToObject(row) {
   return {
-    date: row[COL.DATE - 1] ? formatDate(new Date(row[COL.DATE - 1])) : "",
+    date: extractDate(row[COL.DATE - 1]),
     name: row[COL.NAME - 1] || "",
     device: row[COL.DEVICE - 1] || "",
-    inTime: row[COL.IN_TIME - 1] || "",
-    outTime: row[COL.OUT_TIME - 1] || "",
-    lastSeen: row[COL.LAST_SEEN - 1] || "",
+    inTime: extractTime(row[COL.IN_TIME - 1]),
+    outTime: extractTime(row[COL.OUT_TIME - 1]),
+    lastSeen: extractTime(row[COL.LAST_SEEN - 1]),
     hours: row[COL.HOURS - 1] || "",
     status: row[COL.STATUS - 1] || "",
   };
+}
+
+/** Safely extract a Date object to YYYY-MM-DD avoiding timezone shifts */
+function extractDate(val) {
+  if (!val) return "";
+  if (val instanceof Date || Object.prototype.toString.call(val) === '[object Date]') {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, "0");
+    const d = String(val.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  return String(val);
+}
+
+/** Safely extract a Date object (time) to HH:mm:ss avoiding timezone shifts */
+function extractTime(val) {
+  if (!val) return "";
+  if (val instanceof Date || Object.prototype.toString.call(val) === '[object Date]') {
+    const h = String(val.getHours()).padStart(2, "0");
+    const m = String(val.getMinutes()).padStart(2, "0");
+    const s = String(val.getSeconds()).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  }
+  return String(val);
 }
 
 /** Format a Date object as YYYY-MM-DD in IST */
