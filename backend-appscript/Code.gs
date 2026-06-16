@@ -292,7 +292,10 @@ function getMonthAttendance(name) {
 }
 
 /**
- * Get monthly summary — count of present days and total hours per user.
+ * Get monthly summary — smart count of present days and total hours per user.
+ * - Excludes Holiday rows
+ * - Excludes weekend rows (Sat/Sun)
+ * - Counts avgHours only from days that have actual hours (excludes live/active sessions)
  */
 function getMonthlySummary(name) {
   const monthData = getMonthAttendance(name);
@@ -301,16 +304,47 @@ function getMonthlySummary(name) {
   const summary = {};
 
   records.forEach((r) => {
-    if (!summary[r.name]) {
-      summary[r.name] = { name: r.name, presentDays: 0, totalHours: 0 };
+    // Skip Holiday rows
+    if (r.status === "Holiday") return;
+
+    // Skip weekend rows (0 = Sunday, 6 = Saturday)
+    if (r.date) {
+      const d = new Date(r.date + "T00:00:00");
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) return;
     }
+
+    if (!summary[r.name]) {
+      summary[r.name] = {
+        name: r.name,
+        presentDays: 0,
+        totalHours: 0,
+        daysWithHours: 0, // days that have completed hours (not live session)
+      };
+    }
+
     summary[r.name].presentDays++;
-    summary[r.name].totalHours += parseFloat(r.hours) || 0;
+
+    const hrs = parseFloat(r.hours) || 0;
+    summary[r.name].totalHours += hrs;
+
+    // Only count avg from days with actual completed hours
+    if (hrs > 0) {
+      summary[r.name].daysWithHours++;
+    }
   });
+
+  // Compute avgHours from days with completed hours only
+  const result = Object.values(summary).map((s) => ({
+    name: s.name,
+    presentDays: s.presentDays,
+    totalHours: s.totalHours,
+    avgHours: s.daysWithHours > 0 ? (s.totalHours / s.daysWithHours) : 0,
+  }));
 
   return {
     success: true,
-    summary: Object.values(summary),
+    summary: result,
   };
 }
 
