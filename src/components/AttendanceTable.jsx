@@ -10,8 +10,9 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Wifi, WifiOff } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Wifi, WifiOff, Edit2 } from 'lucide-react'
 import { formatDisplayDate, formatDisplayTime, formatHours } from '../utils/dateUtils.js'
+import EditAttendanceModal from './EditAttendanceModal.jsx'
 
 const PAGE_SIZE = 10
 
@@ -42,12 +43,16 @@ function SortIcon({ column, sortKey, sortDir }) {
     : <ChevronDown className="w-3.5 h-3.5 text-brand-600" />
 }
 
-export default function AttendanceTable({ records = [], loading = false }) {
+export default function AttendanceTable({ records = [], loading = false, onRefresh = () => {} }) {
   const [search, setSearch]       = useState('')
   const [statusFilter, setStatus] = useState('All')
   const [sortKey, setSortKey]     = useState('date')
   const [sortDir, setSortDir]     = useState('desc')
   const [page, setPage]           = useState(1)
+
+  // Edit Modal State
+  const [editingRecord, setEditingRecord] = useState(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // ── Filter + Sort ──────────────────────────
   const filtered = useMemo(() => {
@@ -177,12 +182,13 @@ export default function AttendanceTable({ records = [], loading = false }) {
               <TH label="OUT Time" sortable col="outTime" />
               <TH label="Hours"    sortable col="hours"   />
               <TH label="Status"   sortable col="status"  />
+              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-400">
                   No attendance records found.
                 </td>
               </tr>
@@ -212,6 +218,18 @@ export default function AttendanceTable({ records = [], loading = false }) {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={r.status} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => {
+                        setEditingRecord(r)
+                        setIsEditModalOpen(true)
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                      title="Edit Record"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -247,7 +265,19 @@ export default function AttendanceTable({ records = [], loading = false }) {
             </button>
           </div>
         </div>
+        </div>
       )}
+
+      {/* ── Edit Modal ──────────────────────── */}
+      <EditAttendanceModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingRecord(null)
+        }}
+        record={editingRecord}
+        onSuccess={onRefresh}
+      />
     </div>
   )
 }

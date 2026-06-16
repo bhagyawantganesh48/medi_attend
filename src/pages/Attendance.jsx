@@ -153,7 +153,7 @@ export default function Attendance() {
       )}
 
       {/* ── Table ───────────────────────────── */}
-      <AttendanceTable records={records} loading={loading} />
+      <AttendanceTable records={records} loading={loading} onRefresh={refresh} />
     </div>
   )
 }

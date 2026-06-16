@@ -86,6 +86,9 @@ function doPost(e) {
       case "heartbeat":
         result = recordHeartbeat(body.name, body.device, body.time);
         break;
+      case "edit":
+        result = editAttendance(body.date, body.name, body.inTime, body.outTime, body.hours);
+        break;
       default:
         result = { error: "Unknown action: " + action };
     }
@@ -166,6 +169,32 @@ function recordHeartbeat(name, device, timeStr) {
       message: `Heartbeat recorded for ${name} at ${timeFormatted}`,
     };
   }
+}
+
+// ─────────────────────────────────────────────
+// EDIT ATTENDANCE
+// ─────────────────────────────────────────────
+
+function editAttendance(dateStr, name, inTime, outTime, hours) {
+  if (!name || !dateStr) return { success: false, error: "Name and Date are required" };
+
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const rowDate = data[i][COL.DATE - 1];
+    const rowName = data[i][COL.NAME - 1];
+
+    if (formatDate(new Date(rowDate)) === dateStr && rowName === name) {
+      const rowIndex = i + 1;
+      sheet.getRange(rowIndex, COL.IN_TIME).setValue(inTime || "");
+      sheet.getRange(rowIndex, COL.OUT_TIME).setValue(outTime || "");
+      sheet.getRange(rowIndex, COL.HOURS).setValue(hours || "");
+      return { success: true, message: `Record updated for ${name} on ${dateStr}` };
+    }
+  }
+
+  return { success: false, error: "Record not found" };
 }
 
 // ─────────────────────────────────────────────
@@ -337,22 +366,16 @@ function rowToObject(row) {
   };
 }
 
-/** Format a Date object as YYYY-MM-DD */
+/** Format a Date object as YYYY-MM-DD in IST */
 function formatDate(date) {
   if (!date || isNaN(date)) return "";
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return Utilities.formatDate(date, "Asia/Kolkata", "yyyy-MM-dd");
 }
 
-/** Format a Date object as HH:MM:SS */
+/** Format a Date object as HH:MM:SS in IST */
 function formatTime(date) {
   if (!date || isNaN(date)) return "";
-  const h = String(date.getHours()).padStart(2, "0");
-  const m = String(date.getMinutes()).padStart(2, "0");
-  const s = String(date.getSeconds()).padStart(2, "0");
-  return `${h}:${m}:${s}`;
+  return Utilities.formatDate(date, "Asia/Kolkata", "HH:mm:ss");
 }
 
 /**

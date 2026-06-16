@@ -113,3 +113,14 @@ export async function sendManualHeartbeat(name, device = 'Manual') {
     time: new Date().toISOString(),
   })
 }
+
+/**
+ * Edit an existing attendance record.
+ * @param {Object} record - { date, name, inTime, outTime, hours }
+ */
+export async function editAttendanceRecord(record) {
+  return apiPost({
+    action: 'edit',
+    ...record,
+  })
+}

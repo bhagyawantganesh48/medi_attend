@@ -242,7 +242,7 @@ export default function Dashboard() {
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
           This Week's Attendance
         </h2>
-        <AttendanceTable records={recentRecords} loading={recentLoading} />
+        <AttendanceTable records={recentRecords} loading={recentLoading} onRefresh={handleRefresh} />
       </div>
     </div>
   )
