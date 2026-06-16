@@ -89,6 +89,9 @@ function doPost(e) {
       case "edit":
         result = editAttendance(body.date, body.name, body.inTime, body.outTime, body.hours);
         break;
+      case "markHoliday":
+        result = markHoliday(body.date, body.name);
+        break;
       default:
         result = { error: "Unknown action: " + action };
     }
@@ -198,8 +201,39 @@ function editAttendance(dateStr, name, inTime, outTime, hours) {
 }
 
 // ─────────────────────────────────────────────
-// GET ENDPOINTS
+// MARK HOLIDAY
 // ─────────────────────────────────────────────
+
+function markHoliday(dateStr, name) {
+  if (!name || !dateStr) return { success: false, error: "Name and Date are required" };
+
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const rowDate = extractDate(data[i][COL.DATE - 1]);
+    const rowName = String(data[i][COL.NAME - 1]);
+
+    if (rowDate === dateStr && rowName === name) {
+      const rowIndex = i + 1;
+      // Clear times and mark as Holiday
+      sheet.getRange(rowIndex, COL.IN_TIME).setValue("");
+      sheet.getRange(rowIndex, COL.OUT_TIME).setValue("");
+      sheet.getRange(rowIndex, COL.LAST_SEEN).setValue("");
+      sheet.getRange(rowIndex, COL.HOURS).setValue("");
+      sheet.getRange(rowIndex, COL.STATUS).setValue("Holiday");
+      return { success: true, message: `Marked ${dateStr} as Holiday for ${name}` };
+    }
+  }
+
+  // No row exists yet — create a Holiday row
+  sheet.appendRow([
+    dateStr, name, "Holiday", "", "", "", "", "Holiday"
+  ]);
+  return { success: true, message: `Created Holiday row for ${name} on ${dateStr}` };
+}
+
+
 
 /**
  * Get all attendance records, optionally filtered by name and date range.

@@ -24,10 +24,13 @@ function isWeekend(date) {
 }
 
 function getDayStatus(date, dateStr, records) {
-  // Weekends are holidays — always show as holiday, regardless of any record
+  // Check for a custom holiday record first
+  const record = records.find(r => r.date === dateStr)
+  if (record && record.status === 'Holiday') return 'holiday'
+
+  // Weekends are always holidays
   if (isWeekend(date)) return 'holiday'
 
-  const record = records.find(r => r.date === dateStr)
   if (!record) return null // weekday with no record → absent
   if (record.status === 'Online') return 'online'
   if (record.hours && parseFloat(record.hours) > 0) return 'present'

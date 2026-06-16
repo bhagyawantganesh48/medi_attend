@@ -2,24 +2,29 @@
  * MonthlySummary.jsx — Summary stats card for a month
  *
  * Displays:
- *   - Present days count
+ *   - Present days count  (only Mon–Fri, non-holiday records, up to today)
  *   - Total hours worked
  *   - Average hours per day
- *   - Attendance percentage (vs working days in month)
+ *   - Attendance % (present / working days from first record to today)
  */
 
 import { useMemo } from 'react'
 import { CalendarCheck, Clock, TrendingUp, Percent } from 'lucide-react'
-import { format, getDaysInMonth, getDay, eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns'
+import { format, getDay, eachDayOfInterval, parseISO, min, max, startOfDay } from 'date-fns'
 
-/** Count working days (Mon–Fri) in a given month */
-function countWorkingDays(date) {
-  const start = startOfMonth(date)
-  const end   = endOfMonth(date)
-  const days  = eachDayOfInterval({ start, end })
+/**
+ * Count Mon–Fri working days in an interval [from, to].
+ * Excludes dates that are custom holidays (status === 'Holiday').
+ */
+function countWorkingDays(fromDate, toDate, holidayDates = new Set()) {
+  if (!fromDate || !toDate || fromDate > toDate) return 0
+  const days = eachDayOfInterval({ start: fromDate, end: toDate })
   return days.filter(d => {
-    const dow = getDay(d)
-    return dow !== 0 && dow !== 6 // Exclude Sunday (0) and Saturday (6)
+    const dow = getDay(d) // 0=Sun, 6=Sat
+    if (dow === 0 || dow === 6) return false // weekend
+    const ds = format(d, 'yyyy-MM-dd')
+    if (holidayDates.has(ds)) return false // custom holiday
+    return true
   }).length
 }
 
@@ -47,19 +52,45 @@ function SummaryItem({ icon: Icon, label, value, color }) {
 
 export default function MonthlySummary({ records = [], name, month }) {
   const targetMonth = month ? new Date(month) : new Date()
+  const today = startOfDay(new Date())
 
   const stats = useMemo(() => {
-    const workingDays = countWorkingDays(targetMonth)
-
     // Filter to the correct user if name is provided
     const userRecords = name
       ? records.filter(r => r.name === name)
       : records
 
-    const presentDays  = userRecords.length
-    const totalHours   = userRecords.reduce((sum, r) => sum + (parseFloat(r.hours) || 0), 0)
+    // Separate holidays from actual attendance
+    const holidayRecords = userRecords.filter(r => r.status === 'Holiday')
+    const presentRecords = userRecords.filter(r => {
+      if (r.status === 'Holiday') return false
+      // Exclude weekend records (backfilled on Sat/Sun shouldn't count)
+      if (r.date) {
+        const d = parseISO(r.date)
+        const dow = getDay(d)
+        if (dow === 0 || dow === 6) return false
+      }
+      return true
+    })
+
+    // Build set of custom holiday dates
+    const holidayDates = new Set(holidayRecords.map(r => r.date))
+
+    // Determine "from" date: earliest attendance record date (excluding holidays/weekends)
+    // This handles the internship start date automatically
+    let fromDate = null
+    if (presentRecords.length > 0) {
+      const sorted = [...presentRecords].sort((a, b) => a.date.localeCompare(b.date))
+      fromDate = parseISO(sorted[0].date)
+    }
+
+    // Working days = Mon–Fri from first-record-date to TODAY (not end of month)
+    const workingDays = fromDate ? countWorkingDays(fromDate, today, holidayDates) : 0
+
+    const presentDays  = presentRecords.length
+    const totalHours   = presentRecords.reduce((sum, r) => sum + (parseFloat(r.hours) || 0), 0)
     const avgHours     = presentDays > 0 ? totalHours / presentDays : 0
-    const attendancePct = workingDays > 0 ? Math.round((presentDays / workingDays) * 100) : 0
+    const attendancePct = workingDays > 0 ? Math.min(100, Math.round((presentDays / workingDays) * 100)) : 0
 
     return {
       workingDays,
@@ -68,7 +99,7 @@ export default function MonthlySummary({ records = [], name, month }) {
       avgHours: avgHours.toFixed(1),
       attendancePct,
     }
-  }, [records, name, targetMonth])
+  }, [records, name, targetMonth, today])
 
   return (
     <div className="card p-5">

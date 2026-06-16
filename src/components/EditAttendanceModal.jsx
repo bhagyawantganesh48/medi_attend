@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
-import { X, Clock, Save, Calculator } from 'lucide-react'
+import { X, Clock, Save, Calculator, Palmtree } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { editAttendanceRecord } from '../utils/api.js'
+import { editAttendanceRecord, markAsHoliday } from '../utils/api.js'
 
 export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess }) {
   const [inTime, setInTime] = useState('')
   const [outTime, setOutTime] = useState('')
   const [hours, setHours] = useState('')
   const [loading, setLoading] = useState(false)
+  const [holidayLoading, setHolidayLoading] = useState(false)
 
   // Initialize fields when modal opens
   useEffect(() => {
@@ -65,7 +66,29 @@ export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess
     }
   }
 
+  const handleMarkHoliday = async () => {
+    if (!record) return
+    const confirmed = window.confirm(
+      `Mark ${record.date} as a Holiday for ${record.name}?\n\nThis will clear the IN/OUT times and mark it as a company holiday.`
+    )
+    if (!confirmed) return
+
+    setHolidayLoading(true)
+    try {
+      await markAsHoliday(record.date, record.name)
+      toast.success(`${record.date} marked as Holiday!`, { icon: '🏖️' })
+      onSuccess()
+      onClose()
+    } catch (error) {
+      toast.error(`Error: ${error.message}`)
+    } finally {
+      setHolidayLoading(false)
+    }
+  }
+
   if (!isOpen || !record) return null
+
+  const isAlreadyHoliday = record.status === 'Holiday'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
@@ -88,6 +111,11 @@ export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess
             <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
               {record.name} — {record.date}
             </p>
+            {isAlreadyHoliday && (
+              <p className="text-xs text-purple-500 dark:text-purple-400 mt-1 flex items-center gap-1">
+                🏖️ This day is currently marked as a Holiday
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -98,6 +126,7 @@ export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess
                 className="input w-full"
                 value={toInputTime(inTime)}
                 onChange={(e) => setInTime(e.target.value)}
+                disabled={isAlreadyHoliday}
               />
             </div>
             
@@ -108,6 +137,7 @@ export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess
                 className="input w-full"
                 value={toInputTime(outTime)}
                 onChange={(e) => setOutTime(e.target.value)}
+                disabled={isAlreadyHoliday}
               />
             </div>
           </div>
@@ -117,7 +147,8 @@ export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess
               <span>Total Hours</span>
               <button 
                 onClick={handleCalculateHours}
-                className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1 font-medium"
+                disabled={isAlreadyHoliday}
+                className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1 font-medium disabled:opacity-40"
               >
                 <Calculator className="w-3.5 h-3.5" />
                 Auto-calculate
@@ -130,17 +161,34 @@ export default function EditAttendanceModal({ isOpen, onClose, record, onSuccess
               className="input w-full"
               value={hours}
               onChange={(e) => setHours(e.target.value)}
-              placeholder="e.g. 8.5"
+              placeholder="e.g. 2"
+              disabled={isAlreadyHoliday}
             />
+          </div>
+
+          {/* Mark as Holiday section */}
+          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+            <button
+              onClick={handleMarkHoliday}
+              disabled={holidayLoading || loading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
+                bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400
+                border border-amber-200 dark:border-amber-800/50
+                hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors
+                disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Palmtree className="w-4 h-4" />
+              {holidayLoading ? 'Marking...' : (isAlreadyHoliday ? '✓ Already a Holiday' : 'Mark this day as Holiday')}
+            </button>
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
-          <button onClick={onClose} className="btn-secondary" disabled={loading}>
+          <button onClick={onClose} className="btn-secondary" disabled={loading || holidayLoading}>
             Cancel
           </button>
-          <button onClick={handleSave} className="btn-primary" disabled={loading}>
+          <button onClick={handleSave} className="btn-primary" disabled={loading || holidayLoading || isAlreadyHoliday}>
             {loading ? 'Saving...' : (
               <>
                 <Save className="w-4 h-4" />

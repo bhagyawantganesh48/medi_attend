@@ -124,3 +124,12 @@ export async function editAttendanceRecord(record) {
     ...record,
   })
 }
+
+/**
+ * Mark a date as a holiday for a user.
+ * @param {string} date - YYYY-MM-DD
+ * @param {string} name - Employee name
+ */
+export async function markAsHoliday(date, name) {
+  return apiPost({ action: 'markHoliday', date, name })
+}
