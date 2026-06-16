@@ -3,10 +3,12 @@
  *
  * Shows all days of the current month as a grid.
  * Each day is colored by attendance status:
- *   - Green  = Present (Offline, hours recorded)
- *   - Blue   = Currently Online
- *   - Gray   = No record / weekend
- *   - Today  = Highlighted border
+ *   - Green   = Present (hours recorded)
+ *   - Blue    = Currently Online
+ *   - Amber   = Partial (logged in but no hours yet)
+ *   - Purple  = Holiday (Saturday or Sunday)
+ *   - Gray    = Absent (weekday, no record)
+ *   - Today   = Highlighted ring border
  */
 
 import { useMemo } from 'react'
@@ -15,9 +17,18 @@ import { formatDisplayDate } from '../utils/dateUtils.js'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-function getDayStatus(dateStr, records) {
+/** Returns true if the given Date is a weekend (Sat or Sun) */
+function isWeekend(date) {
+  const dow = getDay(date) // 0 = Sun, 6 = Sat
+  return dow === 0 || dow === 6
+}
+
+function getDayStatus(date, dateStr, records) {
+  // Weekends are holidays — always show as holiday, regardless of any record
+  if (isWeekend(date)) return 'holiday'
+
   const record = records.find(r => r.date === dateStr)
-  if (!record) return null
+  if (!record) return null // weekday with no record → absent
   if (record.status === 'Online') return 'online'
   if (record.hours && parseFloat(record.hours) > 0) return 'present'
   return 'partial' // logged in but no hours yet
@@ -25,29 +36,42 @@ function getDayStatus(dateStr, records) {
 
 function DayCell({ date, status, isToday, record }) {
   const dayNum = format(date, 'd')
+  const dow = getDay(date)
+  const weekend = dow === 0 || dow === 6
 
   const bgClass = {
     online:  'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
     present: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
     partial: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+    holiday: 'bg-purple-100 dark:bg-purple-900/30 text-purple-400 dark:text-purple-500',
   }[status] || 'bg-gray-50 dark:bg-gray-800/30 text-gray-400 dark:text-gray-600'
 
-  const todayClass = isToday ? 'ring-2 ring-brand-500 ring-offset-1' : ''
+  const todayClass = isToday ? 'ring-2 ring-brand-500 ring-offset-1 dark:ring-offset-gray-900' : ''
+
+  // Tooltip text
+  const tooltipText = status === 'holiday'
+    ? `${format(date, 'dd MMM yyyy')} — Weekend Holiday`
+    : record
+      ? `${formatDisplayDate(record.date)}\nIN: ${record.inTime || '—'} | OUT: ${record.outTime || '—'} | ${record.hours || '—'}h`
+      : format(date, 'dd MMM yyyy')
 
   return (
     <div
       className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium
         transition-all duration-100 ${bgClass} ${todayClass} group cursor-default`}
-      title={record
-        ? `${formatDisplayDate(record.date)}\nIN: ${record.inTime || '—'} | OUT: ${record.outTime || '—'} | ${record.hours || '—'}h`
-        : format(date, 'dd MMM yyyy')}
+      title={tooltipText}
     >
       <span className="text-sm font-semibold">{dayNum}</span>
+
+      {/* Status dot */}
       {status === 'online' && (
         <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
       )}
       {status === 'present' && (
         <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+      )}
+      {status === 'holiday' && (
+        <span className="absolute bottom-1 text-[9px] font-bold text-purple-400 dark:text-purple-500 leading-none">OFF</span>
       )}
     </div>
   )
@@ -82,10 +106,11 @@ export default function CalendarView({ records = [], month }) {
       {/* Legend */}
       <div className="flex gap-4 mb-4 flex-wrap">
         {[
-          { color: 'bg-emerald-400', label: 'Present' },
-          { color: 'bg-blue-400',    label: 'Online now' },
-          { color: 'bg-amber-400',   label: 'Partial' },
-          { color: 'bg-gray-200 dark:bg-gray-700', label: 'Absent' },
+          { color: 'bg-emerald-400',                          label: 'Present'  },
+          { color: 'bg-blue-400',                             label: 'Online now' },
+          { color: 'bg-amber-400',                            label: 'Partial'  },
+          { color: 'bg-purple-400',                           label: 'Holiday'  },
+          { color: 'bg-gray-200 dark:bg-gray-700',            label: 'Absent'   },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className={`w-3 h-3 rounded-full ${color}`} />
@@ -94,10 +119,17 @@ export default function CalendarView({ records = [], month }) {
         ))}
       </div>
 
-      {/* Day labels */}
+      {/* Day labels — Sat & Sun are styled purple */}
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {DAY_LABELS.map(d => (
-          <div key={d} className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 py-1">
+        {DAY_LABELS.map((d, i) => (
+          <div
+            key={d}
+            className={`text-center text-xs font-semibold py-1 ${
+              i === 0 || i === 6
+                ? 'text-purple-400 dark:text-purple-500'
+                : 'text-gray-400 dark:text-gray-500'
+            }`}
+          >
             {d}
           </div>
         ))}
@@ -112,17 +144,17 @@ export default function CalendarView({ records = [], month }) {
 
         {/* Day cells */}
         {days.map(date => {
-          const dateStr  = format(date, 'yyyy-MM-dd')
-          const status   = getDayStatus(dateStr, records)
-          const record   = recordMap[dateStr]
-          const isToday  = dateStr === todayStr
+          const dateStr = format(date, 'yyyy-MM-dd')
+          const status  = getDayStatus(date, dateStr, records)
+          const record  = recordMap[dateStr]
+          const today   = dateStr === todayStr
 
           return (
             <DayCell
               key={dateStr}
               date={date}
               status={status}
-              isToday={isToday}
+              isToday={today}
               record={record}
             />
           )
