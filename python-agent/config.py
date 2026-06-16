@@ -20,7 +20,7 @@ DEVICE_NAME = "Ganesh-Laptop"  # e.g. "Ganesh-Laptop", "Parth-PC"
 # ── Google Apps Script API ─────────────────────────────────────────
 # Paste the deployed Web App URL from Google Apps Script here.
 # Format: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
-API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"  # ← Paste your URL here
+API_URL = "https://script.google.com/macros/s/AKfycbzywuUrsmIPXprMMUP168OO9pXAFGcXgtVtMSb8TiHQaqAWXZWOzG9zJZ4REtlzdq7s_Q/exec"  # ← Paste your URL here
 
 # ── Agent Behavior ────────────────────────────────────────────────
 # How often (in seconds) the agent checks WiFi and sends a heartbeat.

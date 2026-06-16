@@ -171,22 +171,22 @@ def send_heartbeat() -> bool:
         if data.get("success"):
             action = data.get("action", "unknown")
             message = data.get("message", "")
-            logger.info(f"✅ Heartbeat OK [{action}]: {message}")
+            logger.info(f"[OK] Heartbeat OK [{action}]: {message}")
             return True
         else:
-            logger.warning(f"⚠️ API returned error: {data.get('error', 'Unknown error')}")
+            logger.warning(f"[!!] API returned error: {data.get('error', 'Unknown error')}")
             return False
 
     except requests.exceptions.ConnectionError:
-        logger.error("❌ Connection error — check your internet connection or API URL.")
+        logger.error("[ERR] Connection error - check your internet connection or API URL.")
     except requests.exceptions.Timeout:
-        logger.error("❌ Request timed out — API did not respond within 30 seconds.")
+        logger.error("[ERR] Request timed out - API did not respond within 30 seconds.")
     except requests.exceptions.HTTPError as e:
-        logger.error(f"❌ HTTP error: {e}")
+        logger.error(f"[ERR] HTTP error: {e}")
     except json.JSONDecodeError:
-        logger.error(f"❌ API returned invalid JSON. Response: {response.text[:200]}")
+        logger.error(f"[ERR] API returned invalid JSON. Response: {response.text[:200]}")
     except Exception as e:
-        logger.error(f"❌ Unexpected error sending heartbeat: {e}")
+        logger.error(f"[ERR] Unexpected error sending heartbeat: {e}")
 
     return False
 
@@ -206,24 +206,24 @@ def run_test():
     print(f"\n[1] Current WiFi SSID : {ssid!r}")
     print(f"    Target SSID        : {config.COMPANY_WIFI!r}")
     if ssid == config.COMPANY_WIFI:
-        print("    Result             : ✅ MATCH — on company WiFi")
+        print("    Result             : [OK] MATCH - on company WiFi")
     else:
-        print("    Result             : ⚠️  NO MATCH — not on company WiFi")
+        print("    Result             : [!!] NO MATCH - not on company WiFi")
         print("           (Heartbeat will still be sent for testing)")
 
     # Test 2: API connectivity
-    print(f"\n[2] API URL: {config.API_URL}")
+    print(f"[2] API URL: {config.API_URL}")
     if "YOUR_SCRIPT_ID" in config.API_URL:
-        print("    Result: ❌ API URL not configured. Update config.py first.")
+        print("    Result: [FAIL] API URL not configured. Update config.py first.")
         sys.exit(1)
 
     print("    Sending test heartbeat...")
     success = send_heartbeat()
 
     if success:
-        print("    Result: ✅ API is reachable and working!")
+        print("    Result: [OK] API is reachable and working!")
     else:
-        print("    Result: ❌ API call failed. Check the URL and Apps Script deployment.")
+        print("    Result: [FAIL] API call failed. Check the URL and Apps Script deployment.")
 
     print("\n" + "=" * 50 + "\n")
     sys.exit(0 if success else 1)
@@ -257,17 +257,17 @@ def main():
     while True:
         try:
             if is_on_company_wifi():
-                logger.info(f"📶 Connected to '{config.COMPANY_WIFI}' — sending heartbeat...")
+                logger.info(f"[WiFi] Connected to '{config.COMPANY_WIFI}' - sending heartbeat...")
                 send_heartbeat()
             else:
                 ssid = get_current_ssid()
                 if ssid:
-                    logger.info(f"📵 Connected to '{ssid}' (not company WiFi) — skipping.")
+                    logger.info(f"[WiFi] Connected to '{ssid}' (not company WiFi) - skipping.")
                 else:
-                    logger.info("📵 Not connected to any WiFi — skipping.")
+                    logger.info("[WiFi] Not connected to any WiFi - skipping.")
 
         except KeyboardInterrupt:
-            logger.info("\n👋 Agent stopped by user.")
+            logger.info("\nAgent stopped by user.")
             break
         except Exception as e:
             logger.error(f"Unexpected error in main loop: {e}")

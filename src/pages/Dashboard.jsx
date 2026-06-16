@@ -19,7 +19,7 @@ import toast from 'react-hot-toast'
 
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTodayAttendance, useMonthStats } from '../hooks/useAttendance.js'
-import { fetchAttendance } from '../utils/api.js'
+import { fetchAttendance, sendManualHeartbeat } from '../utils/api.js'
 import { formatDisplayTime, formatHours, lastSeenLabel, todayStr, firstOfWeekStr } from '../utils/dateUtils.js'
 import StatCard from '../components/StatCard.jsx'
 import AttendanceTable from '../components/AttendanceTable.jsx'
@@ -74,6 +74,37 @@ export default function Dashboard() {
   }, [selectedName, refreshKey])
 
   useEffect(() => { loadRecent() }, [loadRecent])
+
+  // ── Auto-tracking via IP ──────────────────
+  useEffect(() => {
+    // Only run for regular users
+    if (isAdmin || !user) return
+
+    const checkIp = async () => {
+      const savedOfficeIp = localStorage.getItem('medi_office_ip')
+      if (!savedOfficeIp) return
+
+      try {
+        const res = await fetch('https://api.ipify.org?format=json')
+        const data = await res.json()
+        
+        if (data.ip === savedOfficeIp.trim()) {
+          // IP matches! Send heartbeat.
+          await sendManualHeartbeat(user.name, 'Web Dashboard')
+          // Refresh the dashboard data slightly after to show the update
+          setTimeout(() => setRefreshKey(k => k + 1), 1000)
+        }
+      } catch (err) {
+        console.warn('Auto-tracking IP check failed', err)
+      }
+    }
+
+    // Run immediately, then every 60 seconds
+    checkIp()
+    const intervalId = setInterval(checkIp, 60000)
+
+    return () => clearInterval(intervalId)
+  }, [user, isAdmin])
 
   function handleRefresh() {
     setRefreshKey(k => k + 1)
@@ -148,7 +179,7 @@ export default function Dashboard() {
               <WifiOff className="w-4 h-4" />
               {todayRecord
                 ? `You are Offline. Last seen at ${formatDisplayTime(todayRecord.lastSeen)}.`
-                : "You haven't connected today. Connect to company WiFi to start attendance."}
+                : "You haven't connected today. Keep this dashboard open while connected to the office network to track attendance."}
             </>
           )}
         </div>
@@ -193,7 +224,7 @@ export default function Dashboard() {
           value={todayRecord ? todayRecord.status : 'No data'}
           icon={isOnline ? Wifi : WifiOff}
           color={isOnline ? 'green' : 'gray'}
-          subtitle={isOnline ? 'Connected to office WiFi' : 'Not connected'}
+          subtitle={isOnline ? 'Connected to office network' : 'Not connected'}
           loading={todayLoading}
         />
         <StatCard

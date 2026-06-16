@@ -11,38 +11,66 @@ import { Wifi, WifiOff, Save, RotateCcw, CheckCircle2, AlertCircle, Info } from 
 import toast from 'react-hot-toast'
 
 const STORAGE_KEY = 'medi_api_url'
+const IP_STORAGE_KEY = 'medi_office_ip'
 
 export default function Settings() {
   const [apiUrl, setApiUrl]       = useState('')
   const [saved, setSaved]         = useState('')
+  const [officeIp, setOfficeIp]   = useState('')
+  const [savedOfficeIp, setSavedOfficeIp] = useState('')
   const [testing, setTesting]     = useState(false)
   const [testResult, setTestResult] = useState(null) // null | 'ok' | 'error'
 
-  // Load saved URL on mount
+  // Load saved values on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) || ''
-    setApiUrl(stored)
-    setSaved(stored)
+    const storedUrl = localStorage.getItem(STORAGE_KEY) || ''
+    setApiUrl(storedUrl)
+    setSaved(storedUrl)
+
+    const storedIp = localStorage.getItem(IP_STORAGE_KEY) || ''
+    setOfficeIp(storedIp)
+    setSavedOfficeIp(storedIp)
   }, [])
 
   function handleSave() {
-    const trimmed = apiUrl.trim()
-    if (trimmed && !trimmed.startsWith('https://')) {
+    const trimmedUrl = apiUrl.trim()
+    const trimmedIp = officeIp.trim()
+
+    if (trimmedUrl && !trimmedUrl.startsWith('https://')) {
       toast.error('URL must start with https://')
       return
     }
-    localStorage.setItem(STORAGE_KEY, trimmed)
-    setSaved(trimmed)
+
+    localStorage.setItem(STORAGE_KEY, trimmedUrl)
+    setSaved(trimmedUrl)
+
+    localStorage.setItem(IP_STORAGE_KEY, trimmedIp)
+    setSavedOfficeIp(trimmedIp)
+
     setTestResult(null)
-    toast.success('API URL saved! 🎉')
+    toast.success('Settings saved! 🎉')
   }
 
   function handleReset() {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(IP_STORAGE_KEY)
     setApiUrl('')
     setSaved('')
+    setOfficeIp('')
+    setSavedOfficeIp('')
     setTestResult(null)
-    toast('API URL cleared.', { icon: '🗑️' })
+    toast('Settings cleared.', { icon: '🗑️' })
+  }
+
+  async function handleDetectIp() {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json')
+      const data = await res.json()
+      setOfficeIp(data.ip)
+      toast.success('Current IP detected')
+    } catch {
+      toast.error('Failed to detect IP address')
+    }
   }
 
   async function handleTest() {
@@ -73,7 +101,7 @@ export default function Settings() {
     }
   }
 
-  const isDirty = apiUrl.trim() !== saved
+  const isDirty = apiUrl.trim() !== saved || officeIp.trim() !== savedOfficeIp
 
   return (
     <div className="p-6 max-w-2xl space-y-6">
@@ -194,6 +222,53 @@ export default function Settings() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* ── Office IP Address card ───────────── */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
+            <Wifi className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Office Public IP Address
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              The dashboard will auto-mark attendance if your current IP matches this.
+            </p>
+          </div>
+        </div>
+
+        {/* IP Input */}
+        <div className="space-y-1.5">
+          <label htmlFor="office-ip" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Office Public IP
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="office-ip"
+              type="text"
+              value={officeIp}
+              onChange={e => setOfficeIp(e.target.value)}
+              placeholder="e.g. 192.168.1.1"
+              className="input font-mono text-sm flex-1"
+            />
+            <button
+              onClick={handleDetectIp}
+              className="btn-secondary whitespace-nowrap"
+            >
+              Detect My IP
+            </button>
+          </div>
+        </div>
+
+        {savedOfficeIp && (
+          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Currently saved IP: <span className="font-mono">{savedOfficeIp}</span></span>
+          </div>
+        )}
       </div>
 
       {/* ── Credentials reminder ─────────────── */}
